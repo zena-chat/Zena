@@ -73,7 +73,14 @@ impl Default for UIState {
     }
 }
 
-/// Holds data pulled from the client core such as channels, messages, users.
+/// In-memory store of data that has been queried from the database.
+///
+/// Only data relevant to chat/messenging should be stored in here. Roughly anything
+/// that might be represented in the database or otherwise derived from data in the
+/// db can live here. For data that is specific to the UI implementation see [UIState]
+/// 
+/// The UI can access this data in order to render channel lists, online members,
+/// chat messages, etc without having to query the database directly.
 #[derive(Default)]
 pub struct CoreData {
     pub channels: Vec<Channel>,
