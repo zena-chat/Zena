@@ -40,6 +40,7 @@ impl ZenaApp {
             data: core_data.clone(),
             frame,
         };
+        // move the ClientCore into a separate thread
         std::thread::spawn(move || {
             // Start 'core' here.
             while let Ok(action) = rx.recv() {
