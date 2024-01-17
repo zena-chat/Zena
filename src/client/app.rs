@@ -11,9 +11,13 @@ use std::{
     sync::{mpsc::Sender, Arc},
 };
 
+/// This is the top-most struct representing the Zena client GUI application.
 pub struct ZenaApp {
+    /// Sends [CoreAction]s over a channel to a background thread.
     tx: Sender<CoreAction>,
+    /// UI-local state. Can be mutated by egui
     ui_state: UIState,
+    /// Data shared between the UI thread and the data thread (core)
     data: Arc<Mutex<CoreData>>,
 }
 
