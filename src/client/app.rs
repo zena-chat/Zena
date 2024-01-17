@@ -1,6 +1,6 @@
 use super::{
     components::channel_list::draw_channel_list,
-    core::{ClientCore, CoreAction},
+    core::{ClientCore, CoreAction, Store},
     db::Db,
 };
 use crate::model::{Channel, ChannelId, Message};
@@ -11,29 +11,29 @@ use std::{
     sync::{mpsc::Sender, Arc},
 };
 
-pub struct ZenaApp {
+pub struct ZenaApp<S: Store> {
     tx: Sender<CoreAction>,
     ui_state: UIState,
-    data: Arc<Mutex<CoreData>>,
+    store: Arc<Mutex<S>>,
 }
 
-impl ZenaApp {
+impl<S: Store> ZenaApp<S> {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customize the look and feel of egui using
         // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
 
-        let db = Db::init().unwrap(); // FIXME(josh): handle error
+        let store = S::default();
 
         let (tx, rx) = std::sync::mpsc::channel();
 
         let frame = cc.egui_ctx.clone();
 
-        let core_data = Arc::new(Mutex::new(CoreData::default()));
+        let core_data = Arc::new(Mutex::new(store));
 
         let mut core = ClientCore {
-            db,
-            data: core_data.clone(),
+            // db,
+            store: core_data.clone(),
             frame,
         };
         std::thread::spawn(move || {
@@ -50,7 +50,7 @@ impl ZenaApp {
         Self {
             tx,
             ui_state: Default::default(),
-            data: core_data,
+            store: core_data,
         }
     }
 }
@@ -82,6 +82,7 @@ pub struct CoreData {
 
 impl eframe::App for ZenaApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let channels = self.
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Zena Client");
             ui.horizontal(|ui| {
