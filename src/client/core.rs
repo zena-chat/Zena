@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use egui::{mutex::Mutex, Context};
+use egui::mutex::Mutex;
 
 use super::{app::CoreData, db::Db};
 
@@ -20,6 +20,9 @@ pub enum CoreAction {
     DeleteAllChannels,
 }
 
+/// Top-most struct that sits in the Data thread. Holds data needed to perform IO
+/// to the outside world as well as mutate the in-memory data that the UI needs to
+/// render.
 pub struct ClientCore {
     /// Wrapper around a SQLite connection for performing queries
     pub db: Db,
@@ -27,7 +30,7 @@ pub struct ClientCore {
     pub data: Arc<Mutex<CoreData>>,
     /// Use this to force a repaint if we receive data on the network while the
     /// user is not interacting with the app.
-    pub frame: Context,
+    pub frame: egui::Context, // TODO: abstract this so that we don't own a egui specific struct
 }
 
 impl ClientCore {
