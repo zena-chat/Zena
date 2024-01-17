@@ -1,14 +1,21 @@
 //! How we communicate with the server from within the client core
 
-use std::io::{Write, self};
+use std::net::SocketAddr;
 
-trait Payload {
-  /// Serialize a payload to bytes and write it to a buffer
-  fn serialize(&self, buf: &mut impl Write) -> io::Result<()>;
-}
+use tokio::net::TcpStream;
 
-async fn send_msg_to_server<P: Payload>() -> Result<(), NetErr> {
-  Ok(())
+use crate::protocol::Payload;
+
+// TODO: get a TCP connection I can shoot things over
+struct ConnectionWrapper;
+
+impl ConnectionWrapper {
+    async fn send_msg_to_server<'a, P: Payload<'a>>(&self, payload: P) -> Result<(), NetErr> {
+        let bytes = bincode::serialize(&payload).unwrap(); // TODO: handle error
+        let mut stream = TcpStream::connect("127.0.0.1:7777").await.unwrap();
+        // bincode::serialize_into(stream, &payload).unwrap();
+        Ok(())
+    }
 }
 
 /// TODO(josh): this is a placeholder

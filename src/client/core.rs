@@ -6,7 +6,7 @@ use super::{app::CoreData, db::Db};
 
 #[derive(Debug)]
 pub enum CoreAction {
-    /// Instructs the core to fetch all channels
+    /// Instructs the data thread to fetch all channels
     FetchChannels,
     CreateChannel(String),
     DeleteAllChannels,
