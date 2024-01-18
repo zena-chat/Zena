@@ -11,9 +11,13 @@ use std::{
     sync::{mpsc::Sender, Arc},
 };
 
+/// This is the top-most struct representing the Zena client GUI application.
 pub struct ZenaApp {
+    /// Sends [CoreAction]s over a channel to a background thread.
     tx: Sender<CoreAction>,
+    /// UI-local state. Can be mutated by egui
     ui_state: UIState,
+    /// Data shared between the UI thread and the data thread (core)
     data: Arc<Mutex<CoreData>>,
 }
 
@@ -36,6 +40,7 @@ impl ZenaApp {
             data: core_data.clone(),
             frame,
         };
+        // move the ClientCore into a separate thread
         std::thread::spawn(move || {
             // Start 'core' here.
             while let Ok(action) = rx.recv() {
@@ -73,7 +78,14 @@ impl Default for UIState {
     }
 }
 
-/// Holds data pulled from the client core such as channels, messages, users.
+/// In-memory store of data that has been queried from the database.
+///
+/// Only data relevant to chat/messenging should be stored in here. Roughly anything
+/// that might be represented in the database or otherwise derived from data in the
+/// db can live here. For data that is specific to the UI implementation see [UIState]
+/// 
+/// The UI can access this data in order to render channel lists, online members,
+/// chat messages, etc without having to query the database directly.
 #[derive(Default)]
 pub struct CoreData {
     pub channels: Vec<Channel>,
