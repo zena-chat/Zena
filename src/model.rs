@@ -7,10 +7,11 @@ pub type ChannelId = i64;
 pub type UserId = i64;
 pub type MessageId = i64;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Channel {
     pub id: ChannelId,
     pub name: String,
+    pub priority: u32,
     /// when the channel was originally created as a unix epoch
     pub created_at: i64,
     /// when the channel was last modified as a unix epoch
@@ -36,4 +37,15 @@ pub struct Message {
     /// when the message was last modified as a unix epoch
     pub updated_at: i64,
     pub deleted: bool,
+}
+
+impl PartialOrd for Channel {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.priority.partial_cmp(&other.priority)
+    }
+}
+impl Ord for Channel {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.priority.cmp(&other.priority)
+    }
 }

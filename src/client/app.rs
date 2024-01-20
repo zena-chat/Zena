@@ -2,12 +2,12 @@ use super::{
     components::channel_list::draw_channel_list,
     core::{ClientCore, CoreAction},
     db::Db,
+    store::Store,
 };
-use crate::model::{Channel, ChannelId, Message};
+use crate::model::{ChannelId};
 use egui::mutex::Mutex;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
     sync::{mpsc::Sender, Arc},
 };
 
@@ -17,8 +17,8 @@ pub struct ZenaApp {
     tx: Sender<CoreAction>,
     /// UI-local state. Can be mutated by egui
     ui_state: UIState,
-    /// Data shared between the UI thread and the data thread (core)
-    data: Arc<Mutex<CoreData>>,
+
+    store: Arc<Mutex<Store>>,
 }
 
 impl ZenaApp {
@@ -27,17 +27,16 @@ impl ZenaApp {
         // This is also where you can customize the look and feel of egui using
         // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
 
-        let db = Db::init().unwrap(); // FIXME(josh): handle error
-
         let (tx, rx) = std::sync::mpsc::channel();
 
         let frame = cc.egui_ctx.clone();
 
-        let core_data = Arc::new(Mutex::new(CoreData::default()));
+        let store = Arc::new(Mutex::new(Store::new()));
 
+        let db = Db::init().unwrap();
         let mut core = ClientCore {
             db,
-            data: core_data.clone(),
+            store: store.clone(),
             frame,
         };
         // move the ClientCore into a separate thread
@@ -55,7 +54,7 @@ impl ZenaApp {
         Self {
             tx,
             ui_state: Default::default(),
-            data: core_data,
+            store,
         }
     }
 }
@@ -78,22 +77,10 @@ impl Default for UIState {
     }
 }
 
-/// In-memory store of data that has been queried from the database.
-///
-/// Only data relevant to chat/messenging should be stored in here. Roughly anything
-/// that might be represented in the database or otherwise derived from data in the
-/// db can live here. For data that is specific to the UI implementation see [UIState]
-/// 
-/// The UI can access this data in order to render channel lists, online members,
-/// chat messages, etc without having to query the database directly.
-#[derive(Default)]
-pub struct CoreData {
-    pub channels: Vec<Channel>,
-    pub messages: HashMap<Channel, Vec<Message>>,
-}
-
 impl eframe::App for ZenaApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let store = self.store.lock();
+
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Zena Client");
             ui.horizontal(|ui| {
@@ -116,8 +103,8 @@ impl eframe::App for ZenaApp {
             ui.spacing();
             ui.heading("Channels");
 
-            let data = self.data.lock(); // hold a lock on the CoreData until we've finished painting
-            draw_channel_list(ui, &data.channels, &mut self.ui_state.current_channel);
+            // let data = self.store.lock(); // hold a lock on the CoreData until we've finished painting
+            draw_channel_list(ui, store.all_channels(), &mut self.ui_state.current_channel);
         });
     }
 }

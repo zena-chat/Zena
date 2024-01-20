@@ -5,12 +5,12 @@ use crate::model::{Channel, ChannelId};
 /// Renders a list of Channels with their ID and name.
 /// The currently selected channel should be shown in bold and clicking
 /// other channels will switch to that channel.
-pub fn draw_channel_list(
+pub fn draw_channel_list<'s>(
     ui: &mut Ui,
-    channels: &[Channel],
+    channels: impl Iterator<Item = &'s Channel>,
     selected_channel: &mut Option<ChannelId>,
 ) {
-    channels.iter().for_each(|ch| {
+    channels.for_each(|ch| {
         let text = format!("Channel {}: {}", ch.id, ch.name);
         let resp = match selected_channel {
             Some(id) if ch.id == *id => ui.label(RichText::new(text).strong()),
