@@ -4,12 +4,10 @@ use super::{
     db::Db,
     store::Store,
 };
-use crate::model::{ChannelId};
+use crate::model::ChannelId;
 use egui::mutex::Mutex;
 use serde::{Deserialize, Serialize};
-use std::{
-    sync::{mpsc::Sender, Arc},
-};
+use std::sync::{mpsc::Sender, Arc};
 
 /// This is the top-most struct representing the Zena client GUI application.
 pub struct ZenaApp {

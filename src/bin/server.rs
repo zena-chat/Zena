@@ -1,7 +1,11 @@
 use std::{env, error::Error, sync::Arc};
 
-use tokio::{net::TcpListener, sync::Mutex};
-use zena::server::ServerPeers;
+use tokio::{
+    net::TcpListener,
+    sync::{broadcast, Mutex},
+};
+use tracing::trace;
+use zena::server::{handle_connection, ServerPeers};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -17,13 +21,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     tracing::info!("Server running on {addr}");
 
-    let state = Arc::new(Mutex::new(ServerPeers::default()));
+    let _state = Arc::new(Mutex::new(ServerPeers::default()));
+
+    let (tx, _rx) = broadcast::channel(100);
 
     loop {
         let (stream, addr) = listener.accept().await?;
 
+        trace!("connection from Addr {addr}");
+        let tx = tx.clone();
         tokio::spawn(async move {
-            tracing::trace!("Accepted a new connection");
+            tracing::info!("Accepted a new connection");
+            handle_connection(stream, tx).await;
         });
     }
 }
