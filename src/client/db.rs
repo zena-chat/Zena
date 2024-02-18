@@ -32,16 +32,17 @@ pub mod queries {
 
     impl Db {
         pub fn get_all_channels(&self) -> Result<Vec<Channel>> {
-            let mut stmt = self
-                .conn
-                .prepare("SELECT channel_id, name, created_at, updated_at FROM channels")?;
+            let mut stmt = self.conn.prepare(
+                "SELECT channel_id, name, priority, created_at, updated_at FROM channels",
+            )?;
             let channels: Vec<_> = stmt
                 .query_map([], |row| {
                     Ok(Channel {
                         id: row.get(0)?,
                         name: row.get(1)?,
-                        created_at: row.get(2)?,
-                        updated_at: row.get(3)?,
+                        priority: row.get(2)?,
+                        created_at: row.get(3)?,
+                        updated_at: row.get(4)?,
                     })
                 })?
                 .flatten() // we're ignoring errors for the time being
@@ -49,10 +50,17 @@ pub mod queries {
             Ok(channels)
         }
 
-        pub fn create_channel(&self, name: String) -> Result<()> {
+        pub fn create_channel(&self, name: String) -> Result<Channel> {
             self.conn
                 .execute("INSERT INTO channels (name) VALUES (?1)", [&name])?;
-            Ok(())
+            // FIXME
+            Ok(Channel {
+                id: 100,
+                name,
+                priority: 1,
+                created_at: 999,
+                updated_at: 999,
+            })
         }
 
         pub fn delete_all_channels(&self) -> Result<()> {
@@ -75,6 +83,7 @@ mod migrations {
               
                 -- updateable fields
                 name TEXT NOT NULL,
+                priority INTEGER NOT NULL DEFAULT 1,
               
                 -- audit
                 created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
