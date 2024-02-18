@@ -1,27 +1,59 @@
-use std::{collections::HashMap, net::SocketAddr};
+use std::error::Error;
 
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
-    net::TcpStream,
+    net::{TcpListener, TcpStream},
     sync::broadcast,
 };
 
 use crate::protocol::Packet;
 
-pub struct ConnectedClient {
-    name: String,
-    rx: tokio::sync::mpsc::Receiver<Vec<u8>>,
-}
-
-#[derive(Default)]
-pub struct ServerPeers {
-    peers: HashMap<SocketAddr, ConnectedClient>,
-}
+// NOTE(omni): this may be upgraded to an enum later to support more global
+//             server events.
+struct ServerShutdown;
 
 pub struct ZenaServer {
-    // broadcast: tokio::sync::broadcast:: ;
+    /// Used to inform all sessions that the server is shutting down
+    /// and so they should send a shutdown message.
+    broadcast: tokio::sync::broadcast::Sender<ServerShutdown>,
 }
 
+impl Default for ZenaServer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ZenaServer {
+    pub fn new() -> Self {
+        Self {
+            broadcast: tokio::sync::broadcast::Sender::new(100),
+        }
+    }
+
+    pub async fn start_server(&self, addr: String) -> Result<(), Box<dyn Error>> {
+        let listener = TcpListener::bind(&addr).await?;
+
+        tracing::info!("Server running on {addr}");
+
+        // TODO: use the channel back
+        let (tx, _rx) = broadcast::channel(100);
+
+        loop {
+            let (stream, addr) = listener.accept().await?;
+
+            tracing::trace!("connection from Addr {addr}");
+            let tx = tx.clone();
+            tokio::spawn(async move {
+                tracing::info!("Accepted a new connection");
+                handle_connection(stream, tx).await;
+            });
+        }
+    }
+}
+
+/// Takes a new socket and begins to listen for data with the intention of turning it into a
+/// session and then receiving authentication data.
 pub async fn handle_connection(mut socket: TcpStream, broadcaster: broadcast::Sender<Vec<u8>>) {
     let mut send_to_client = broadcaster.subscribe();
 
